@@ -121,7 +121,7 @@ class DataRetentionService(BaseModuleService):
 
         cleanup_rows = store.rows("cleanup_job")
         new_job_id = max((int(r.get("id", 0)) for r in cleanup_rows), default=0) + 1
-        cleanup_rows.append({
+        new_job = {
             "id": new_job_id,
             "status": "已启用",
             "作业名称": f"auto_cleanup_{entry.get('规则名称')}",
@@ -131,7 +131,15 @@ class DataRetentionService(BaseModuleService):
             "最近清理时间": "",
             "pending": False,
             "abnormal": False,
-        })
+            "来源保留策略ID": entry_id,
+            "执行记录": [],
+        }
+        cleanup_rows.append(new_job)
+
+        # 保留策略创建的清理作业立即按物理分区有效签认范围生成计划，
+        # 值班员确认时只删除有效签认范围内的物理分区。
+        from app.services.cleanup_job import CleanupJobService
+        plan_result = CleanupJobService().build_cleanup_plan(new_job_id)
 
         entry["最近执行时间"] = "2026-11-21T08:00:00Z"
         return {
@@ -140,6 +148,7 @@ class DataRetentionService(BaseModuleService):
             "created_cleanup_job_id": new_job_id,
             "cleanup_method": eval_result["cleanup_method"],
             "expired_partitions": eval_result["expired_partitions"],
+            "cleanup_plan": plan_result["plan"],
             "message": f"已创建清理作业 {new_job_id}",
         }
 

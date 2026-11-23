@@ -86,6 +86,23 @@
       </form>
     </div>
 
+    <div v-if="meta.key === 'cleanup_job'" class="job-selector">
+      <label>
+        <span>选择清理作业办理签认删除</span>
+        <select v-model.number="selectedCleanupJobId" data-testid="cleanup-job-selector">
+          <option v-for="row in rows" :key="String(row.id)" :value="Number(row.id)">
+            #{{ row.id }} {{ row.作业名称 }}（{{ row.status }}）
+          </option>
+        </select>
+      </label>
+    </div>
+
+    <CleanupSignoffPanel
+      v-if="meta.key === 'cleanup_job' && selectedCleanupJobId"
+      :key="selectedCleanupJobId"
+      :job-id="selectedCleanupJobId"
+    />
+
     <footer class="page-foot">
       <span>共 {{ total }} 条{{ meta.name }}记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
@@ -94,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import {
   createEntry,
@@ -103,6 +120,7 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/backend-service'
+import CleanupSignoffPanel from '@/views/CleanupSignoffPanel.vue'
 import type { EntryRow } from '@/data/types'
 
 const props = defineProps<{ moduleKey: string }>()
@@ -115,6 +133,9 @@ const filterFields = meta.fields.slice(0, 3)
 const showCreate = ref(false)
 const creating = ref(false)
 const createValues = ref<Record<string, string>>({})
+const selectedCleanupJobId = ref<number | null>(
+  meta.key === 'cleanup_job' ? null : null,
+)
 const stats = computed(() => [
   { label: meta.metrics[0], value: total.value },
   { label: meta.metrics[1], value: rows.value.filter((row) => row.status === meta.statuses[1]).length },
@@ -182,10 +203,25 @@ async function reload() {
     const payload = await listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    if (meta.key === 'cleanup_job' && selectedCleanupJobId.value === null && rows.value.length) {
+      selectedCleanupJobId.value = Number(rows.value[0].id)
+    }
+    if (meta.key === 'cleanup_job' && selectedCleanupJobId.value !== null
+        && !rows.value.some((row) => Number(row.id) === selectedCleanupJobId.value)) {
+      selectedCleanupJobId.value = rows.value.length ? Number(rows.value[0].id) : null
+    }
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '业务列表读取失败'
   }
 }
+
+watch(
+  () => props.moduleKey,
+  () => {
+    selectedCleanupJobId.value = null
+    void reload()
+  },
+)
 
 onMounted(reload)
 </script>

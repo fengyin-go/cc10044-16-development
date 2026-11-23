@@ -22,6 +22,8 @@ from app.services.data_lake_audit import DataLakeAuditService
 from app.services.sla_policy import SlaPolicyService
 from app.services.cleanup_job import CleanupJobService
 from app.services.catalog_sync import CatalogSyncService
+from app.services.physical_partition import PhysicalPartitionService
+from app.services.partition_signoff import PartitionSignoffService
 
 SERVICES: dict[str, BaseModuleService] = {
     "etl_pipeline": EtlPipelineService(),
@@ -44,6 +46,8 @@ SERVICES: dict[str, BaseModuleService] = {
     "sla_policy": SlaPolicyService(),
     "cleanup_job": CleanupJobService(),
     "catalog_sync": CatalogSyncService(),
+    "physical_partition": PhysicalPartitionService(),
+    "partition_signoff": PartitionSignoffService(),
 }
 
 
